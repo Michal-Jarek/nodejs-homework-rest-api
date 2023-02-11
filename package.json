@@ -1,7 +1,8 @@
 {
-  "name": "template",
+  "name": "rest-api-michal-jarek",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "start": "cross-env NODE_ENV=production node ./server.js",
     "start:dev": "cross-env NODE_ENV=development nodemon ./server.js",
