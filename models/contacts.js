@@ -52,7 +52,15 @@ const addContact = async (body) => {
     .sort((a, b) => a - b);
   const newId = idSortedArray[idSortedArray.length - 1] + 1;
   const { name, email, phone } = body;
-  console.log(await body);
+
+  // ************ Handle empty body cells *********************
+
+  if (!name || name.trim().length === 0)
+    return new Error("Missing required name field - name", { cause: "400" });
+  if (!email || email.trim().length === 0)
+    return new Error("Missing required name field - email", { cause: "400" });
+  if (!phone || phone.trim().length === 0)
+    return new Error("Missing required name field - phone", { cause: "400" });
 
   const newContact = {
     id: newId.toString(),
@@ -60,14 +68,15 @@ const addContact = async (body) => {
     email,
     phone,
   };
+
   const newArray = [...contactArray, newContact];
-  await fs
+  return await fs
     .writeFile(contactsPath, JSON.stringify(newArray, null))
     .catch((error) => {
       console.log(`Error in writeFile addContact: ${error}`);
       return error;
     })
-    .then(() => console.log("Save a new contact end with Succes"));
+    .then(() => newContact);
 };
 
 const updateContact = async (contactId, body) => {};

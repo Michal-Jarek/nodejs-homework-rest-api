@@ -35,11 +35,20 @@ contactsRouter.get("/:contactId", async (req, res, next) => {
 });
 
 contactsRouter.post("/", async (req, res, next) => {
-  
-  console.log(req.body);
-  const { name, email, phone } = req.body;
-  addContact(req.body);
-  res.json({ message: "template message" });
+  const respondAddContact = await addContact(req.body);
+  console.log(respondAddContact);
+  if (!(respondAddContact instanceof Error))
+    res.status(201).json({
+      status: "succes",
+      code: 201,
+      data: respondAddContact,
+    });
+  else
+    res.status(respondAddContact.cause).json({
+      status: respondAddContact.name,
+      code: respondAddContact.cause,
+      message: respondAddContact.message,
+    });
 });
 
 contactsRouter.delete("/:contactId", async (req, res, next) => {
