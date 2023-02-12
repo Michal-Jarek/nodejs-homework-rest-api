@@ -36,7 +36,7 @@ contactsRouter.get("/:contactId", async (req, res, next) => {
 
 contactsRouter.post("/", async (req, res, next) => {
   const respondAddContact = await addContact(req.body);
-  console.log(respondAddContact);
+
   if (!(respondAddContact instanceof Error))
     res.status(201).json({
       status: "succes",
@@ -52,7 +52,21 @@ contactsRouter.post("/", async (req, res, next) => {
 });
 
 contactsRouter.delete("/:contactId", async (req, res, next) => {
-  res.json({ message: "template message" });
+  const id = req.params.contactId;
+  const deleteContact = await removeContact(id);
+
+  if (!(deleteContact instanceof Error))
+    res.status(200).json({
+      status: "succes",
+      code: 200,
+      message: deleteContact.message,
+    });
+  else
+    res.status(deleteContact.cause).json({
+      status: deleteContact.name,
+      code: deleteContact.cause,
+      message: deleteContact.message,
+    });
 });
 
 contactsRouter.put("/:contactId", async (req, res, next) => {

@@ -1,5 +1,12 @@
 import fs from "fs/promises";
 import path from "path";
+import Joi from "joi";
+
+const validationObject = Joi.object({
+  name: Joi.string().alphanum().min(3).max(30).required(),
+  phone: Joi.string().min(3).max(20).required(),
+  email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: true } }),
+});
 
 const contactsPath = path.resolve("./models/contacts.json");
 
@@ -25,24 +32,23 @@ const getContactById = async (contactId) => {
 };
 
 const removeContact = async (contactId) => {
-  // const contactArray = contactsPath
-  //   ? await listContacts(contactsPath).catch((error) => error)
-  //   : await listContacts().catch((error) => error);
-  // const contactById = await getContactById(contactId);
-  // if (contactById.name === "Error") return console.log(contactById.message);
-  // const filteredContact = contactArray.filter(
-  //   (data) => data.id !== contactId.toString()
-  // );
-  // await fs
-  //   .writeFile(
-  //     contactsPath || defaultPath,
-  //     JSON.stringify(filteredContact, null)
-  //   )
-  //   .catch((error) => {
-  //     console.log(`Error in writeFile deleteContactById: ${error}`);
-  //     return error;
-  //   });
-  // return console.log("Delete is completed");
+  const contactArray = await listContacts(contactsPath);
+  const contactById = await getContactById(contactId);
+  if (contactById.name === "Error") return contactById;
+  const filteredContact = contactArray.filter(
+    (data) => data.id !== contactId.toString()
+  );
+  return await fs
+    .writeFile(contactsPath, JSON.stringify(filteredContact, null))
+    .catch((error) => {
+      console.log(`Error in writeFile deleteContactById: ${error}`);
+      return error;
+    })
+    .then(() => {
+      return {
+        message: "contact deleted",
+      };
+    });
 };
 
 const addContact = async (body) => {
@@ -53,30 +59,32 @@ const addContact = async (body) => {
   const newId = idSortedArray[idSortedArray.length - 1] + 1;
   const { name, email, phone } = body;
 
-  // ************ Handle empty body cells *********************
+  try {
+    // ************ Validation empty body cells *********************
+    Joi.attempt({ name, email, phone }, validationObject);
 
-  if (!name || name.trim().length === 0)
-    return new Error("Missing required name field - name", { cause: "400" });
-  if (!email || email.trim().length === 0)
-    return new Error("Missing required name field - email", { cause: "400" });
-  if (!phone || phone.trim().length === 0)
-    return new Error("Missing required name field - phone", { cause: "400" });
+    const newContact = {
+      id: newId.toString(),
+      name,
+      email,
+      phone,
+    };
 
-  const newContact = {
-    id: newId.toString(),
-    name,
-    email,
-    phone,
-  };
-
-  const newArray = [...contactArray, newContact];
-  return await fs
-    .writeFile(contactsPath, JSON.stringify(newArray, null))
-    .catch((error) => {
-      console.log(`Error in writeFile addContact: ${error}`);
-      return error;
-    })
-    .then(() => newContact);
+    const newArray = [...contactArray, newContact];
+    return await fs
+      .writeFile(contactsPath, JSON.stringify(newArray, null))
+      .catch((error) => {
+        console.log(`Error in writeFile addContact: ${error}`);
+        return error;
+      })
+      .then(() => newContact);
+  } catch (err) {
+    const e = new Error(err.details[0].message, {
+      cause: "400",
+    });
+    e.name = err.name;
+    return e;
+  }
 };
 
 const updateContact = async (contactId, body) => {};
