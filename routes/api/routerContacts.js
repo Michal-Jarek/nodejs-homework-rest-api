@@ -4,6 +4,7 @@ import {
   getContactById,
   listContacts,
   removeContact,
+  updateContact,
 } from "../../models/contacts.js";
 
 const contactsRouter = express.Router();
@@ -70,7 +71,21 @@ contactsRouter.delete("/:contactId", async (req, res, next) => {
 });
 
 contactsRouter.put("/:contactId", async (req, res, next) => {
-  res.json({ message: "template message" });
+  const id = req.params.contactId;
+  const respondPutContact = await updateContact(id, req.body);
+
+  if (!(respondPutContact instanceof Error))
+    res.status(200).json({
+      status: "succes",
+      code: 200,
+      data: respondPutContact,
+    });
+  else
+    res.status(respondPutContact.cause).json({
+      status: respondPutContact.name,
+      code: respondPutContact.cause,
+      message: respondPutContact.message,
+    });
 });
 
 export default contactsRouter;

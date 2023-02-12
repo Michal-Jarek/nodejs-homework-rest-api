@@ -87,7 +87,46 @@ const addContact = async (body) => {
   }
 };
 
-const updateContact = async (contactId, body) => {};
+const updateContact = async (contactId, body) => {
+  const contactById = await getContactById(contactId);
+  if (contactById.name === "Error") return contactById;
+
+  const contactArray = await listContacts();
+  const { name, email, phone } = body;
+
+  try {
+    Joi.attempt({ name, email, phone }, validationObject);
+
+    const updatedContact = {
+      id: contactId,
+      name,
+      email,
+      phone,
+    };
+
+    const newArray = contactArray.filter((contact) => contact.id !== contactId);
+    newArray.push(updatedContact);
+    return await fs
+      .writeFile(
+        contactsPath,
+        JSON.stringify(
+          newArray.sort((a, b) => Number(a.id) - Number(b.id)),
+          null
+        )
+      )
+      .catch((error) => {
+        console.log(`Error in writeFile addContact: ${error}`);
+        return error;
+      })
+      .then(() => updatedContact);
+  } catch (err) {
+    const e = new Error(err.details[0].message, {
+      cause: "400",
+    });
+    e.name = err.name;
+    return e;
+  }
+};
 
 export {
   listContacts,
