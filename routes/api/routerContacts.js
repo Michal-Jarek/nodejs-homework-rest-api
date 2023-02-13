@@ -8,33 +8,15 @@ contactsRouter.get("/", contactController.listContacts);
 
 contactsRouter.get("/:contactId", contactController.getContactById);
 
-
 contactsRouter.post("/", contactController.createContact);
 
 
-// contactsRouter.delete("/:contactId", async (req, res, next) => {
-//   const id = req.params.contactId;
-//   const deleteContact = await removeContact(id);
+contactsRouter.delete("/:contactId", contactController.deleteContact);
 
-//   if (!(deleteContact instanceof Error))
-//     res.status(200).json({
-//       status: "succes",
-//       code: 200,
-//       message: deleteContact.message,
-//     });
-//   else
-//     res.status(deleteContact.cause).json({
-//       status: deleteContact.name,
-//       code: deleteContact.cause,
-//       message: deleteContact.message,
-//     });
-// });
 
-// contactsRouter.put("/:contactId", async (req, res, next) => {
-//   const id = req.params.contactId;
-//   const respondPutContact = await updateContact(id, req.body);
+contactsRouter.put("/:contactId", contactController.updateContact);
 
-//   if (!(respondPutContact instanceof Error))
+// if (!(respondPutContact instanceof Error))
 //     res.status(200).json({
 //       status: "succes",
 //       code: 200,

@@ -7,6 +7,7 @@ const validationObject = Joi.object({
   email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: true } }),
 });
 
+
 export const listContacts = async (req, res) => {
   const allContacts = await ContactService.getAll().catch((err) => err);
   console.log(allContacts);
@@ -77,82 +78,79 @@ export const createContact = async (req, res) => {
   }
 };
 
-//   const contactArray = await listContacts();
+export const deleteContact = async (req, res) => {
+  const id = req.params.contactId;
+ if (id.length < 12)
+   return res.status(400).json({
+     status: "Bad request",
+     code: 400,
+     message:
+       "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
+   });
+  
+  const exists = await ContactService.exists(id);
+  if (!exists)
+    return res.status(404).json({
+      status: "Eroor",
+      code: 404,
+      message: "Contact doesn't exist",
+    });
 
-//   try {
-//     // ************ Validation empty body cells *********************
-//     Joi.attempt({ name, email, phone }, validationObject);
+  const deletedContact = await ContactService.deleteById(id);
+  res.status(200).json({
+    status: "succes",
+    code: 200,
+    message: deletedContact,
+  });
+};
+export const updateContact = async (req, res) => {
+  const id = req.params.contactId;
+ if (id.length < 12)
+   return res.status(400).json({
+     status: "Bad request",
+     code: 400,
+     message:
+       "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
+   });
+  const { name, email, phone } = req.body;
 
-//     const newContact = {
-//       id: newId.toString(),
-//       name,
-//       email,
-//       phone,
-//     };
+  const exists = await ContactService.exists(id);
 
-//     const newArray = [...contactArray, newContact];
-//     return await fs
-//       .writeFile(contactsPath, JSON.stringify(newArray, null))
-//       .catch((error) => {
-//         console.log(`Error in writeFile addContact: ${error}`);
-//         return error;
-//       })
-//       .then(() => newContact);
-//   } catch (err) {
-//     const e = new Error(err.details[0].message, {
-//       cause: "400",
-//     });
-//     e.name = err.name;
-//     return e;
-//   }
-// };
+  if (!exists)
+    return res.status(404).json({
+      status: "Eroor",
+      code: 404,
+      message: "Contact doesn't exist",
+    });
+  try {
+    Joi.attempt({ name, email, phone }, validationObject);
 
-// export const updateTask = async (req, res) => {
-//   const id = req.params.id;
-//   const { name, isCompleted } = req.body;
-
-//   const exists = await TasksService.exists(id);
-
-//   if (!exists) return res.sendStatus(404);
-
-//   const updatedTask = await TasksService.update(id, { name, isCompleted });
-
-//   res.json(updatedTask);
-// };
-
-// export const deleteTask = async (req, res) => {
-//   const id = req.params.id;
-
-//   const exists = await TasksService.exists(id);
-
-//   if (!exists) return res.sendStatus(404);
-
-//   const deletedTask = await TasksService.deleteById(id);
-
-//   res.json(deletedTask);
-// };
-
-//const contactsPath = path.resolve("./models/contacts.json");
-
-// const removeContact = async (contactId) => {
-//   const contactArray = await listContacts(contactsPath);
-//   const contactById = await getContactById(contactId);
-//   if (contactById.name === "Error") return contactById;
-//   const filteredContact = contactArray.filter(
-//     (data) => data.id !== contactId.toString()
-//   );
-//   return await fs
-//     .writeFile(contactsPath, JSON.stringify(filteredContact, null))
-//     .catch((error) => {
-//       console.log(`Error in writeFile deleteContactById: ${error}`);
-//       return error;
-//     })
-//     .then(() => {
-//       return {
-//         message: "contact deleted",
-//       };
-//     });
-// };
+    const updatedContact = {
+      name,
+      email,
+      phone,
+    };
+    return await ContactService.update(id, updatedContact)
+      .catch((err) => err)
+      .then((data) =>
+        res.status(202).json({
+          status: "succes",
+          code: 200,
+          data: data,
+        })
+      );
+  } catch (err) {
+    const e = new Error(err.details[0].message, {
+      cause: "400",
+    });
+    e.name = err.name;
+    return res.status(e.cause).json({
+      status: e.name,
+      code: e.cause,
+      message: e.message,
+    });
+  }
+};
 
 // const updateContact = async (contactId, body) => {
 //   const contactById = await getContactById(contactId);
