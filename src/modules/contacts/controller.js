@@ -7,7 +7,6 @@ const validationObject = Joi.object({
   email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: true } }),
 });
 
-
 export const listContacts = async (req, res) => {
   const allContacts = await ContactService.getAll().catch((err) => err);
   console.log(allContacts);
@@ -28,7 +27,7 @@ export const listContacts = async (req, res) => {
 
 export const getContactById = async (req, res) => {
   const id = req.params.contactId;
-  if (id.length < 12)
+  if (id.length !== 24)
     return res.status(400).json({
       status: "Bad request",
       code: 400,
@@ -46,7 +45,7 @@ export const getContactById = async (req, res) => {
 
 export const createContact = async (req, res) => {
   const body = req.body;
-  const { name, email, phone } = body;
+  const { name, email, phone, favorite = false } = body;
   try {
     // ************ Validation empty body cells *********************
     Joi.attempt({ name, email, phone }, validationObject);
@@ -55,6 +54,7 @@ export const createContact = async (req, res) => {
       name,
       email,
       phone,
+      favorite,
     };
     return await ContactService.create(newContact)
       .catch((err) => err)
@@ -80,14 +80,14 @@ export const createContact = async (req, res) => {
 
 export const deleteContact = async (req, res) => {
   const id = req.params.contactId;
- if (id.length < 12)
-   return res.status(400).json({
-     status: "Bad request",
-     code: 400,
-     message:
-       "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
-   });
-  
+  if (id.length !== 24)
+    return res.status(400).json({
+      status: "Bad request",
+      code: 400,
+      message:
+        "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
+    });
+
   const exists = await ContactService.exists(id);
   if (!exists)
     return res.status(404).json({
@@ -103,15 +103,16 @@ export const deleteContact = async (req, res) => {
     message: deletedContact,
   });
 };
+
 export const updateContact = async (req, res) => {
   const id = req.params.contactId;
- if (id.length < 12)
-   return res.status(400).json({
-     status: "Bad request",
-     code: 400,
-     message:
-       "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
-   });
+  if (id.length !== 24)
+    return res.status(400).json({
+      status: "Bad request",
+      code: 400,
+      message:
+        "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
+    });
   const { name, email, phone } = req.body;
 
   const exists = await ContactService.exists(id);
@@ -152,51 +153,44 @@ export const updateContact = async (req, res) => {
   }
 };
 
-// const updateContact = async (contactId, body) => {
-//   const contactById = await getContactById(contactId);
-//   if (contactById.name === "Error") return contactById;
+export const toggleFavorite = async (req, res) => {
+  const id = req.params.contactId;
 
-//   const contactArray = await listContacts();
-//   const { name, email, phone } = body;
+  const favorite = await req.body.favorite;
 
-//   try {
-//     Joi.attempt({ name, email, phone }, validationObject);
+  if (
+    (!favorite && typeof favorite !== "boolean") ||
+    typeof favorite !== "boolean"
+  )
+    return res.status(400).json({
+      status: "Error",
+      code: 400,
+      message: "missing field favorite or bad typeof field",
+    });
 
-//     const updatedContact = {
-//       id: contactId,
-//       name,
-//       email,
-//       phone,
-//     };
+  if (id.length !== 24)
+    return res.status(400).json({
+      status: "Bad request",
+      code: 400,
+      message:
+        "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
+    });
+  const exists = await ContactService.exists(id);
 
-//     const newArray = contactArray.filter((contact) => contact.id !== contactId);
-//     newArray.push(updatedContact);
-//     return await fs
-//       .writeFile(
-//         contactsPath,
-//         JSON.stringify(
-//           newArray.sort((a, b) => Number(a.id) - Number(b.id)),
-//           null
-//         )
-//       )
-//       .catch((error) => {
-//         console.log(`Error in writeFile addContact: ${error}`);
-//         return error;
-//       })
-//       .then(() => updatedContact);
-//   } catch (err) {
-//     const e = new Error(err.details[0].message, {
-//       cause: "400",
-//     });
-//     e.name = err.name;
-//     return e;
-//   }
-// };
+  if (!exists)
+    return res.status(404).json({
+      status: "Eroor",
+      code: 404,
+      message: "Contact doesn't exist",
+    });
 
-// export {
-//   listContacts,
-//   getContactById,
-//   removeContact,
-//   addContact,
-//   updateContact,
-// };
+  return await ContactService.toggleFavorite(id, favorite)
+    .catch((err) => err)
+    .then((data) =>
+      res.status(202).json({
+        status: "succes",
+        code: 200,
+        data: data,
+      })
+    );
+};

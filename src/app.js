@@ -12,7 +12,6 @@ app.use(cors());
 app.use(express.json());
 app.use("/api/contacts", contactsRouter);
 
-
 app.use((err, _, res, __) => {
   console.log(err.stack);
   res.status(500).json({
