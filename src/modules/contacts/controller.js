@@ -1,6 +1,8 @@
 import * as ContactService from "./service.js";
 import Joi from "joi";
 
+const MIN_ID_LENGTH = 24;
+
 const validationObject = Joi.object({
   name: Joi.string().alphanum().min(3).max(30).required(),
   phone: Joi.string().min(3).max(20).required(),
@@ -8,8 +10,10 @@ const validationObject = Joi.object({
 });
 
 export const listContacts = async (req, res) => {
+
+
+  console.log(req.user);
   const allContacts = await ContactService.getAll().catch((err) => err);
-  console.log(allContacts);
 
   if (!(allContacts instanceof Error))
     return res.status(200).json({
@@ -27,7 +31,7 @@ export const listContacts = async (req, res) => {
 
 export const getContactById = async (req, res) => {
   const id = req.params.contactId;
-  if (id.length !== 24)
+  if (id.length !== MIN_ID_LENGTH)
     return res.status(400).json({
       status: "Bad request",
       code: 400,
@@ -80,7 +84,7 @@ export const createContact = async (req, res) => {
 
 export const deleteContact = async (req, res) => {
   const id = req.params.contactId;
-  if (id.length !== 24)
+  if (id.length !== MIN_ID_LENGTH)
     return res.status(400).json({
       status: "Bad request",
       code: 400,
@@ -106,7 +110,7 @@ export const deleteContact = async (req, res) => {
 
 export const updateContact = async (req, res) => {
   const id = req.params.contactId;
-  if (id.length !== 24)
+  if (id.length !== MIN_ID_LENGTH)
     return res.status(400).json({
       status: "Bad request",
       code: 400,
@@ -119,7 +123,7 @@ export const updateContact = async (req, res) => {
 
   if (!exists)
     return res.status(404).json({
-      status: "Eroor",
+      status: "Error",
       code: 404,
       message: "Contact doesn't exist",
     });
@@ -168,7 +172,7 @@ export const toggleFavorite = async (req, res) => {
       message: "missing field favorite or bad typeof field",
     });
 
-  if (id.length !== 24)
+  if (id.length !== MIN_ID_LENGTH4)
     return res.status(400).json({
       status: "Bad request",
       code: 400,
