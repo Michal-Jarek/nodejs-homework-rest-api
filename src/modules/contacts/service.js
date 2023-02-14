@@ -10,9 +10,7 @@ export const exists = async (id) => Contact.exists({ _id: id });
 
 export const deleteById = async (id) => Contact.findByIdAndDelete(id);
 
-export const update = async (id, { name, email, phone }) => {
-  return Contact.findByIdAndUpdate(id, { name, email, phone }, { new: true });
-};
-export const toggleFavorite = async (id, favorite) => {
-  return Contact.findByIdAndUpdate(id, { favorite }, { new: true });
-};
+export const update = async (id, { name, email, phone }) =>
+  Contact.findByIdAndUpdate(id, { name, email, phone }, { new: true });
+export const toggleFavorite = async (id, favorite) =>
+  Contact.findByIdAndUpdate(id, { favorite }, { new: true });

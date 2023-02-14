@@ -121,7 +121,7 @@ export const updateContact = async (req, res) => {
 
   if (!exists)
     return res.status(404).json({
-      status: "Eroor",
+      status: "Error",
       code: 404,
       message: "Contact doesn't exist",
     });
