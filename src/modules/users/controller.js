@@ -2,7 +2,6 @@ import * as UserService from "./service.js";
 import Joi from "joi";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { User } from "./model.js";
 
 const validationObject = Joi.object({
   password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{3,30}$")).required(),
@@ -73,7 +72,7 @@ export const userLogin = async (req, res) => {
         message: "Email or password is wrong",
       },
     });
-  const payload = { id: user._id, email };
+  const payload = { id: user._id};
   const token = jwt.sign(payload, process.env.SECRET);
   console.log(token);
 
