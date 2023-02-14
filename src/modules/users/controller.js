@@ -99,3 +99,43 @@ export const userLogin = async (req, res) => {
     });
   }
 };
+export const userLogout = async (req, res) => {
+  const userId = req.user;
+  const token = null;
+  try {
+    return await UserService.update(userId, token).then(() =>
+      res.json({
+        status: "204 No Content",
+      })
+    );
+  } catch (err) {
+    res.json({
+      status: "Error",
+      ResponseBody: {
+        message: err.message,
+      },
+    });
+  }
+};
+
+export const userCurrent = async (req, res) => {
+  const userId = req.user;
+  try {
+    return await UserService.getById(userId).then((data) =>
+      res.status(200).json({
+        status: "200 OK",
+        ResponseBody: {
+          email: data.email,
+          subscription: data.subscription,
+        },
+      })
+    );
+  } catch (err) {
+    res.json({
+      status: "Error",
+      ResponseBody: {
+        message: err.message,
+      },
+    });
+  }
+};
