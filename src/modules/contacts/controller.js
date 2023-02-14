@@ -10,8 +10,10 @@ const validationObject = Joi.object({
 });
 
 export const listContacts = async (req, res) => {
+
+
+  console.log(req.user);
   const allContacts = await ContactService.getAll().catch((err) => err);
-  console.log(allContacts);
 
   if (!(allContacts instanceof Error))
     return res.status(200).json({
