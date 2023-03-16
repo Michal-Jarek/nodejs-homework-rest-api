@@ -74,7 +74,6 @@ export const userLogin = async (req, res) => {
     });
   const payload = { id: user._id};
   const token = jwt.sign(payload, process.env.SECRET);
-  console.log(token);
 
   try {
     return await UserService.update(user._id, token).then((data) =>
