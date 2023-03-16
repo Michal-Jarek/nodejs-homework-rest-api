@@ -1,8 +1,11 @@
 import { app } from "./app.js";
 import mongoose from "mongoose";
+import { UPLOAD_DIRECTORY,  AVATARS_DIRECTORY } from "./middlewares.js";
+import { initializeDirectory } from "./utils.js";
 
-
-app.listen(3000, () => {
+app.listen(3000, async () => {
+  await initializeDirectory(UPLOAD_DIRECTORY);
+  await initializeDirectory(AVATARS_DIRECTORY);
   mongoose
     .set("strictQuery", false)
     .connect(process.env.MONGO_URI, {

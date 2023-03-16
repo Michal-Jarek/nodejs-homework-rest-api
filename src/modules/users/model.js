@@ -12,6 +12,9 @@ export const User = model(
       type: String,
       required: [true, "Password is required"],
     },
+    avatarURL: {
+      type: String,
+    },
 
     subscription: {
       type: String,
