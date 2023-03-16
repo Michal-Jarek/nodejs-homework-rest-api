@@ -1,8 +1,12 @@
 import * as UserService from "./service.js";
+import path from "path";
+import fs from "fs/promises";
 import Joi from "joi";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { User } from "./model.js";
+import gravatar from "gravatar";
+import { AVATARS_DIRECTORY } from "../../middlewares.js";
+import Jimp from "jimp";
 
 const validationObject = Joi.object({
   password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{3,30}$")).required(),
@@ -24,7 +28,7 @@ export const userSignup = async (req, res) => {
   }
 
   const hash = bcryptjs.hashSync(password, 12);
-  const newUser = { email, password: hash };
+  const newUser = { email, password: hash, avatarURL: gravatar.url(email) };
 
   if (await UserService.exists(email))
     return res.status(409).json({
@@ -42,6 +46,7 @@ export const userSignup = async (req, res) => {
           user: {
             email: data.email,
             subscription: data.subscription,
+            avatar: data.avatarURL,
           },
         },
       })
@@ -73,9 +78,8 @@ export const userLogin = async (req, res) => {
         message: "Email or password is wrong",
       },
     });
-  const payload = { id: user._id, email };
+  const payload = { id: user._id };
   const token = jwt.sign(payload, process.env.SECRET);
-  console.log(token);
 
   try {
     return await UserService.update(user._id, token).then((data) =>
@@ -137,5 +141,41 @@ export const userCurrent = async (req, res) => {
         message: err.message,
       },
     });
+  }
+};
+
+export const userAvatar = async (req, res) => {
+  const userId = req.user;
+  if (!req.file) return res.sendStatus(400);
+
+  const { path: temporaryName, originalname: originalName } = req.file;
+  const fileName = path.join(AVATARS_DIRECTORY, userId + "_" + originalName);
+
+  try {
+    console.log(temporaryName);
+
+    await fs.rename(temporaryName, fileName);
+    console.log(fileName);
+    console.log(typeof fileName);
+    Jimp.read(fileName)
+      .then((picture) => {
+        return picture
+          .resize(250, 250) // resize
+          .write(fileName); // save
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+    return UserService.updateAvatar(userId, fileName).then((data) =>
+      res.status(200).json({
+        status: "200 OK",
+        ResponseBody: {
+          avatarURL: data.avatarURL,
+        },
+      })
+    );
+  } catch (error) {
+    await fs.unlink(temporaryName);
+    return res.sendStatus(500);
   }
 };

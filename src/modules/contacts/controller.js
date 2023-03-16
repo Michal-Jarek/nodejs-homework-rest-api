@@ -1,7 +1,7 @@
 import * as ContactService from "./service.js";
 import Joi from "joi";
 
-const MIN_ID_LENGTH = 24;
+const REQUIRED_ID_LENGTH = 24;
 
 const validationObject = Joi.object({
   name: Joi.string().alphanum().min(3).max(30).required(),
@@ -10,8 +10,6 @@ const validationObject = Joi.object({
 });
 
 export const listContacts = async (req, res) => {
-
-
   console.log(req.user);
   const allContacts = await ContactService.getAll().catch((err) => err);
 
@@ -31,12 +29,12 @@ export const listContacts = async (req, res) => {
 
 export const getContactById = async (req, res) => {
   const id = req.params.contactId;
-  if (id.length !== MIN_ID_LENGTH)
+  if (id.length !== REQUIRED_ID_LENGTH)
     return res.status(400).json({
       status: "Bad request",
       code: 400,
       message:
-        "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
+        "Argument passed in must be a string of 24 hex characters",
     });
 
   const requestedContact = await ContactService.getById(id);
@@ -84,12 +82,11 @@ export const createContact = async (req, res) => {
 
 export const deleteContact = async (req, res) => {
   const id = req.params.contactId;
-  if (id.length !== MIN_ID_LENGTH)
+  if (id.length !== REQUIRED_ID_LENGTH)
     return res.status(400).json({
       status: "Bad request",
       code: 400,
-      message:
-        "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
+      message: "Argument passed in must be a string of 24 hex characters",
     });
 
   const exists = await ContactService.exists(id);
@@ -110,12 +107,11 @@ export const deleteContact = async (req, res) => {
 
 export const updateContact = async (req, res) => {
   const id = req.params.contactId;
-  if (id.length !== MIN_ID_LENGTH)
+  if (id.length !== REQUIRED_ID_LENGTH)
     return res.status(400).json({
       status: "Bad request",
       code: 400,
-      message:
-        "Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer",
+      message: "Argument passed in must be a string of 24 hex characters",
     });
   const { name, email, phone } = req.body;
 
