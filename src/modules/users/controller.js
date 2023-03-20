@@ -6,6 +6,7 @@ import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 import gravatar from "gravatar";
 import Jimp from "jimp";
+import sgMail from "@sendgrid/mail";
 import { nanoid } from "nanoid";
 import { AVATARS_DIRECTORY } from "../../middlewares.js";
 
@@ -15,6 +16,18 @@ const validationObject = Joi.object({
     .email({ minDomainSegments: 2, tlds: { allow: true } })
     .required(),
 });
+
+sgMail.setApiKey(process.env.API_EMAIL);
+
+const msg = (to, token) => {
+  return {
+    to,
+    from: "m.jarek@bres-bud.pl", // Use the email address or domain you verified above
+    subject: "Sending with Twilio SendGrid is Fun",
+    text: `/users/verify/${token}`,
+    html: `<strong>/users/verify/${token}</strong>`,
+  };
+};
 
 export const userSignup = async (req, res) => {
   const { password, email } = req.body;
@@ -33,7 +46,7 @@ export const userSignup = async (req, res) => {
     email,
     password: hash,
     avatarURL: gravatar.url(email),
-    verificationToken: nanoid,
+    verificationToken: nanoid(),
   };
 
   if (await UserService.exists(email))
@@ -44,9 +57,9 @@ export const userSignup = async (req, res) => {
     });
 
   return await UserService.create(newUser)
-    .catch((err) => console.log(err))
-    .then((data) =>
-      res.status(201).json({
+    .then((data) => {
+      sgMail.send(msg(data.email, data.verificationToken));
+      return res.status(201).json({
         status: "201 Created",
         ResponseBody: {
           user: {
@@ -55,8 +68,9 @@ export const userSignup = async (req, res) => {
             avatar: data.avatarURL,
           },
         },
-      })
-    );
+      });
+    })
+    .catch((err) => console.log(err));
 };
 export const userLogin = async (req, res) => {
   const { password, email } = req.body;
