@@ -5,9 +5,9 @@ import Joi from "joi";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 import gravatar from "gravatar";
-import { AVATARS_DIRECTORY } from "../../middlewares.js";
 import Jimp from "jimp";
-import { verify } from "crypto";
+import { nanoid } from "nanoid";
+import { AVATARS_DIRECTORY } from "../../middlewares.js";
 
 const validationObject = Joi.object({
   password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{3,30}$")).required(),
@@ -33,7 +33,7 @@ export const userSignup = async (req, res) => {
     email,
     password: hash,
     avatarURL: gravatar.url(email),
-    verificationToken: 12,
+    verificationToken: nanoid,
   };
 
   if (await UserService.exists(email))
