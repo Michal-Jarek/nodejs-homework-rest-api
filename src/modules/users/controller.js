@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import gravatar from "gravatar";
 import { AVATARS_DIRECTORY } from "../../middlewares.js";
 import Jimp from "jimp";
+import { verify } from "crypto";
 
 const validationObject = Joi.object({
   password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{3,30}$")).required(),
@@ -28,7 +29,12 @@ export const userSignup = async (req, res) => {
   }
 
   const hash = bcryptjs.hashSync(password, 12);
-  const newUser = { email, password: hash, avatarURL: gravatar.url(email) };
+  const newUser = {
+    email,
+    password: hash,
+    avatarURL: gravatar.url(email),
+    verificationToken: 12,
+  };
 
   if (await UserService.exists(email))
     return res.status(409).json({
@@ -177,5 +183,47 @@ export const userAvatar = async (req, res) => {
   } catch (error) {
     await fs.unlink(temporaryName);
     return res.sendStatus(500);
+  }
+};
+
+export const userEmailVerify = async (req, res) => {
+  const verifyToken = req.params.verify;
+  console.log(verifyToken);
+  if (verifyToken.length === 0)
+    return res.status(400).json({
+      status: "Bad request",
+      code: 400,
+    });
+  const user = await UserService.findEmailToken(verifyToken);
+  if (user.length === 0)
+    return res.status(404).json({
+      status: "User not found",
+      code: 404,
+    });
+
+  const userVerify = user[0].verify;
+  const userId = user[0]._id;
+
+  if (userVerify)
+    return res.status(400).json({
+      status: "Email was already confirmed",
+      code: 400,
+    });
+  try {
+    await UserService.confirmEmail(userId).then(() =>
+      res.status(200).json({
+        status: "200 OK",
+        ResponseBody: {
+          message: "Verification successful",
+        },
+      })
+    );
+  } catch (err) {
+    res.json({
+      status: "Error",
+      ResponseBody: {
+        message: err.message,
+      },
+    });
   }
 };
