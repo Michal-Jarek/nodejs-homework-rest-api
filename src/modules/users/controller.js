@@ -5,15 +5,30 @@ import Joi from "joi";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 import gravatar from "gravatar";
-import { AVATARS_DIRECTORY } from "../../middlewares.js";
 import Jimp from "jimp";
+import sgMail from "@sendgrid/mail";
+import { nanoid } from "nanoid";
+import { AVATARS_DIRECTORY } from "../../middlewares.js";
 
+const emailValidate = Joi.string()
+  .email({ minDomainSegments: 2, tlds: { allow: true } })
+  .required();
 const validationObject = Joi.object({
   password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{3,30}$")).required(),
-  email: Joi.string()
-    .email({ minDomainSegments: 2, tlds: { allow: true } })
-    .required(),
+  email: emailValidate,
 });
+
+sgMail.setApiKey(process.env.API_EMAIL);
+
+const msg = (to, token) => {
+  return {
+    to,
+    from: "m.jarek@bres-bud.pl", // Use the email address or domain you verified above
+    subject: "Sending with Twilio SendGrid is Fun",
+    text: `/users/verify/${token}`,
+    html: `<strong>/users/verify/${token}</strong>`,
+  };
+};
 
 export const userSignup = async (req, res) => {
   const { password, email } = req.body;
@@ -28,7 +43,12 @@ export const userSignup = async (req, res) => {
   }
 
   const hash = bcryptjs.hashSync(password, 12);
-  const newUser = { email, password: hash, avatarURL: gravatar.url(email) };
+  const newUser = {
+    email,
+    password: hash,
+    avatarURL: gravatar.url(email),
+    verificationToken: nanoid(),
+  };
 
   if (await UserService.exists(email))
     return res.status(409).json({
@@ -38,9 +58,9 @@ export const userSignup = async (req, res) => {
     });
 
   return await UserService.create(newUser)
-    .catch((err) => console.log(err))
-    .then((data) =>
-      res.status(201).json({
+    .then((data) => {
+      sgMail.send(msg(data.email, data.verificationToken));
+      return res.status(201).json({
         status: "201 Created",
         ResponseBody: {
           user: {
@@ -49,8 +69,9 @@ export const userSignup = async (req, res) => {
             avatar: data.avatarURL,
           },
         },
-      })
-    );
+      });
+    })
+    .catch((err) => console.log(err));
 };
 export const userLogin = async (req, res) => {
   const { password, email } = req.body;
@@ -177,5 +198,96 @@ export const userAvatar = async (req, res) => {
   } catch (error) {
     await fs.unlink(temporaryName);
     return res.sendStatus(500);
+  }
+};
+
+export const userEmailVerify = async (req, res) => {
+  const verifyToken = req.params.verify;
+  console.log(verifyToken);
+  if (verifyToken.length === 0)
+    return res.status(400).json({
+      status: "Bad request",
+      code: 400,
+    });
+  const user = await UserService.findEmailToken(verifyToken);
+  if (user.length === 0)
+    return res.status(404).json({
+      status: "User not found",
+      code: 404,
+    });
+
+  const userVerify = user[0].verify;
+  const userId = user[0]._id;
+
+  if (userVerify)
+    return res.status(400).json({
+      status: "Email was already confirmed",
+      code: 400,
+    });
+  try {
+    await UserService.confirmEmail(userId).then(() =>
+      res.status(200).json({
+        status: "200 OK",
+        ResponseBody: {
+          message: "Verification successful",
+        },
+      })
+    );
+  } catch (err) {
+    res.json({
+      status: "Error",
+      ResponseBody: {
+        message: err.message,
+      },
+    });
+  }
+};
+
+export const userReplyEmail = async (req, res) => {
+  const { email } = req.body;
+  if (!email)
+    res.status(400).json({
+      code: 400,
+      message: "You don't sent any email",
+    });
+
+  try {
+    Joi.attempt(email, emailValidate);
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      status: err.name,
+      code: 400,
+      message: err.details[0].message,
+    });
+  }
+
+  if (!(await UserService.exists(email)))
+    return res.status(404).json({
+      status: "Not Found",
+      code: 404,
+    });
+
+  try {
+    const user = await UserService.findByEmail(email);
+    if (user[0].verify)
+      return res.status(400).json({
+        status: "Bad Request",
+        code: 400,
+        message: "Verification has already been passed",
+      });
+    else {
+      sgMail.send(msg(email, user[0].verificationToken)).then(() =>
+        res.status(200).json({
+          status: "200 OK",
+          message: "Verification email sent",
+        })
+      );
+    }
+  } catch (err) {
+    return res.status(400).json({
+      code: 400,
+      message: err,
+    });
   }
 };

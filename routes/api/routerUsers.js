@@ -9,5 +9,8 @@ userRouter.post("/login", userController.userLogin);
 userRouter.get("/logout", auth, userController.userLogout);
 userRouter.get("/current", auth, userController.userCurrent);
 userRouter.patch("/avatars", auth, upload.single("avatar"), userController.userAvatar);
+userRouter.get("/verify/:verify", userController.userEmailVerify);
+userRouter.post("/verify", userController.userReplyEmail);
+
 
 export default userRouter;
