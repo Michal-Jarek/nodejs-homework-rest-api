@@ -10,11 +10,12 @@ import sgMail from "@sendgrid/mail";
 import { nanoid } from "nanoid";
 import { AVATARS_DIRECTORY } from "../../middlewares.js";
 
+const emailValidate = Joi.string()
+  .email({ minDomainSegments: 2, tlds: { allow: true } })
+  .required();
 const validationObject = Joi.object({
   password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{3,30}$")).required(),
-  email: Joi.string()
-    .email({ minDomainSegments: 2, tlds: { allow: true } })
-    .required(),
+  email: emailValidate,
 });
 
 sgMail.setApiKey(process.env.API_EMAIL);
@@ -238,6 +239,55 @@ export const userEmailVerify = async (req, res) => {
       ResponseBody: {
         message: err.message,
       },
+    });
+  }
+};
+
+export const userReplyEmail = async (req, res) => {
+  const { email } = req.body;
+  if (!email)
+    res.status(400).json({
+      code: 400,
+      message: "You don't sent any email",
+    });
+
+  try {
+    Joi.attempt(email, emailValidate);
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      status: err.name,
+      code: 400,
+      message: err.details[0].message,
+    });
+  }
+
+  if (!(await UserService.exists(email)))
+    return res.status(404).json({
+      status: "Not Found",
+      code: 404,
+    });
+
+  try {
+    const user = await UserService.findByEmail(email);
+    if (user[0].verify)
+      return res.status(400).json({
+        status: "Bad Request",
+        code: 400,
+        message: "Verification has already been passed",
+      });
+    else {
+      sgMail.send(msg(email, user[0].verificationToken)).then(() =>
+        res.status(200).json({
+          status: "200 OK",
+          message: "Verification email sent",
+        })
+      );
+    }
+  } catch (err) {
+    return res.status(400).json({
+      code: 400,
+      message: err,
     });
   }
 };

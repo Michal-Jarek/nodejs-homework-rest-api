@@ -9,6 +9,8 @@ export const updateAvatar = async (id, avatarURL) =>
   User.findByIdAndUpdate(id, { avatarURL }, { new: true });
 export const findEmailToken = async (verificationToken) =>
   User.find({ verificationToken }, { _id: 1, verify: 1 });
-
 export const confirmEmail = async (id) =>
   User.findByIdAndUpdate(id, { verify: true }, { new: true });
+
+export const findByEmail = async (email) =>
+  User.find({ email }, { verify: 1, verificationToken: 1 });
