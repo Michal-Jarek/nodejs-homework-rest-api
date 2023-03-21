@@ -62,7 +62,7 @@ export const userSignup = async (req, res) => {
       sgMail.send(msg(data.email, data.verificationToken));
       return res.status(201).json({
         status: "201 Created",
-        ResponseBody: {
+        body: {
           user: {
             email: data.email,
             subscription: data.subscription,
@@ -85,7 +85,7 @@ export const userLogin = async (req, res) => {
   if (!isUser)
     return res.status(401).json({
       status: "401 Unauthorized",
-      ResponseBody: {
+      body: {
         message: "Email or password is wrong",
       },
     });
@@ -95,7 +95,7 @@ export const userLogin = async (req, res) => {
   if (!bcryptjs.compareSync(password, user.password))
     return res.status(401).json({
       status: "401 Unauthorized",
-      ResponseBody: {
+      body: {
         message: "Email or password is wrong",
       },
     });
@@ -106,7 +106,7 @@ export const userLogin = async (req, res) => {
     return await UserService.update(user._id, token).then((data) =>
       res.status(200).json({
         status: "200 OK",
-        ResponseBody: {
+        body: {
           token: data.token,
           user: {
             email: data.email,
@@ -118,7 +118,7 @@ export const userLogin = async (req, res) => {
   } catch (err) {
     res.json({
       status: "Error",
-      ResponseBody: {
+      body: {
         message: err.message,
       },
     });
@@ -136,7 +136,7 @@ export const userLogout = async (req, res) => {
   } catch (err) {
     res.json({
       status: "Error",
-      ResponseBody: {
+      body: {
         message: err.message,
       },
     });
@@ -149,7 +149,7 @@ export const userCurrent = async (req, res) => {
     return await UserService.getById(userId).then((data) =>
       res.status(200).json({
         status: "200 OK",
-        ResponseBody: {
+        body: {
           email: data.email,
           subscription: data.subscription,
         },
@@ -158,7 +158,7 @@ export const userCurrent = async (req, res) => {
   } catch (err) {
     res.json({
       status: "Error",
-      ResponseBody: {
+      body: {
         message: err.message,
       },
     });
@@ -173,11 +173,7 @@ export const userAvatar = async (req, res) => {
   const fileName = path.join(AVATARS_DIRECTORY, userId + "_" + originalName);
 
   try {
-    console.log(temporaryName);
-
     await fs.rename(temporaryName, fileName);
-    console.log(fileName);
-    console.log(typeof fileName);
     Jimp.read(fileName)
       .then((picture) => {
         return picture
@@ -190,7 +186,7 @@ export const userAvatar = async (req, res) => {
     return UserService.updateAvatar(userId, fileName).then((data) =>
       res.status(200).json({
         status: "200 OK",
-        ResponseBody: {
+        body: {
           avatarURL: data.avatarURL,
         },
       })
@@ -203,21 +199,20 @@ export const userAvatar = async (req, res) => {
 
 export const userEmailVerify = async (req, res) => {
   const verifyToken = req.params.verify;
-  console.log(verifyToken);
-  if (verifyToken.length === 0)
+  if (!verifyToken) {
     return res.status(400).json({
       status: "Bad request",
       code: 400,
     });
+  }
   const user = await UserService.findEmailToken(verifyToken);
-  if (user.length === 0)
+  if (user.length === 0) {
     return res.status(404).json({
       status: "User not found",
       code: 404,
     });
-
-  const userVerify = user[0].verify;
-  const userId = user[0]._id;
+  }
+  const [{ verify: userVerify, _id: userId }] = user;
 
   if (userVerify)
     return res.status(400).json({
@@ -225,10 +220,10 @@ export const userEmailVerify = async (req, res) => {
       code: 400,
     });
   try {
-    await UserService.confirmEmail(userId).then(() =>
+    UserService.confirmEmail(userId).then(() =>
       res.status(200).json({
         status: "200 OK",
-        ResponseBody: {
+        body: {
           message: "Verification successful",
         },
       })
@@ -236,7 +231,7 @@ export const userEmailVerify = async (req, res) => {
   } catch (err) {
     res.json({
       status: "Error",
-      ResponseBody: {
+      body: {
         message: err.message,
       },
     });
